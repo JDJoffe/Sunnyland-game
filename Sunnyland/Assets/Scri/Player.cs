@@ -7,7 +7,7 @@ using Prime31;
 public class Player : MonoBehaviour
 {
     public float gravity = -10f;
-    public float movespeed = 10f;
+    public float movespeed = 5f;
     private CharacterController2D controller;
 
 
