@@ -10,11 +10,13 @@ public class Player : MonoBehaviour
     public float movespeed = 5f;
     public float jumpHeight = 3.75f;
     public float centreRadius = 0.1f;
-    private CharacterController2D controller;   
+
+    private CharacterController2D controller;
     private Animator anim;
     private SpriteRenderer renderer;
+
     private Vector3 velocity;
-  private  bool isClimbing = false;
+    private bool isClimbing = false;
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
@@ -32,26 +34,28 @@ public class Player : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-       //get left and right movement
+        //get left and right movement
         float inputH = Input.GetAxis("Horizontal");
         //gets up and down movement
         float inputV = Input.GetAxis("Vertical");
 
         //grounded check
-        if (!controller.isGrounded)
+        if (!controller.isGrounded && !isClimbing)
         {
             //apply time to gravity
             velocity.y += gravity * Time.deltaTime;
         }
-        
-        //get spacebar inpug
-        bool isJumping = Input.GetButtonDown("Jump");
-
-        if (isJumping)
+        else
         {
-            //character jump
-            Jump();
-           
+            //get spacebar inpug
+            bool isJumping = Input.GetButtonDown("Jump");
+
+            if (isJumping)
+            {
+                //character jump
+                Jump();
+
+            }
         }
         //unity bool == script bool
         anim.SetBool("IsGrounded", controller.isGrounded);
@@ -60,36 +64,41 @@ public class Player : MonoBehaviour
 
         //call
         Move(inputH);
-        Climb(inputV);
+        Climb(inputH, inputV);
 
-        //applies velocity to controller to make it move
-        controller.move(velocity * Time.deltaTime);
+        //if character not climbing 
+        if (!isClimbing)
+        {
+            //applies velocity to controller to make it move
+            controller.move(velocity * Time.deltaTime);
+        }
+
     }
 
-    void Move(float inputH )
+    void Move(float inputH)
     {
         //left and right movement
         velocity.x = inputH * movespeed;
-      
+
         //bool isrunning = true when inputH is not zero
         bool isRunning = inputH != 0;
         //animate if move button is pressed
-            anim.SetBool("IsRunning", isRunning);
-        
+        anim.SetBool("IsRunning", isRunning);
+
         // flip the sprite when you are moving in the oposite direction
         if (isRunning) { renderer.flipX = inputH < 0; }
-      
+
     }
 
-    void Climb(float inputV)
+    void Climb(float inputH, float inputV)
     {
         bool isOverLadder = false; //overlapping a ladder
-        
-       
+
+
         //get a list of hit objects overlapping point
-        Collider2D[] hits = Physics2D.OverlapPointAll(transform.position);
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, centreRadius);
         //loop through each point
-        foreach(var hit in hits)
+        foreach (var hit in hits)
         {
             //if point overlaps climbable object
             if (hit.tag == "Ladder")
@@ -100,17 +109,33 @@ public class Player : MonoBehaviour
             }
         }
         //if does & inputV has been made
-        if (isOverLadder && inputV !=0)
+        if (isOverLadder && inputV != 0)
         {
             //climb
             isClimbing = true;
+            velocity.y = 0;
         }
-       //do logic for climbing
+
+        if (!isOverLadder)
+        {
+            //not climbing anymore
+            isClimbing = false;
+        }
+        //do logic for climbing
+        if (isClimbing)
+        {
+            //translate character up and down
+            Vector3 inputDir = new Vector3(inputH, inputV);
+            transform.Translate(inputDir * movespeed * Time.deltaTime);
+        }
+        anim.SetBool("IsClimbing", isClimbing);
+        anim.SetFloat("ClimbSpeed", inputV);
     }
     void Jump()
     {
         // set velocity y index to height
         velocity.y = jumpHeight;
+        anim.SetTrigger("Jump");
 
     }
 }
